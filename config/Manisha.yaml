@@ -42,6 +42,6 @@ pipeline:
                       mvn clean package -q
                       echo ""
                       echo "=== Running the App ==="
-                      java -jar target/hello-world-1.0.0.jar
-                      echo ""
+
+
                       echo "=== Pipeline Success! ==="
