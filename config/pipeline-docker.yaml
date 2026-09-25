@@ -19,7 +19,7 @@ pipeline:
   ##################################################
   # CHANGE THIS: Your project ID
   ###################################################
-  projectIdentifier: Harness-CI-CD
+  projectIdentifier: Harness CI-CD
   ####################################################
   # CHANGE THIS: Your org name
   ###################################################
