@@ -109,7 +109,7 @@ pipeline:
                       - <+pipeline.sequenceId>
                       - latest
                     dockerfile: Harness-CI-CD/config/Dockerfile
-                    context: EHarness-CI-CD/config
+                    context: Harness-CI-CD/config
 
               # Step 5: Verify success
               - step:
