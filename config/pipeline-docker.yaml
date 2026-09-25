@@ -34,7 +34,7 @@ pipeline:
                     shell: Sh
                     command: |-
                       echo "=== Step 1: Installing Dependencies ==="
-                      cd Harness-CI-CD/config
+                      cd config
                       pip install -r requirements.txt
                       echo "=== Dependencies Installed! ==="
               - step:
@@ -45,7 +45,7 @@ pipeline:
                     shell: Sh
                     command: |-
                       echo "=== Step 2: Running Unit Tests ==="
-                      cd Harness-CI-CD/config
+                      cd config
                       pip install -r requirements.txt
                       pytest test_app.py -v
                       echo "=== All 3 Tests Passed! ==="
@@ -57,7 +57,7 @@ pipeline:
                     shell: Sh
                     command: |-
                       echo "=== Step 3: Verifying App Works ==="
-                      cd Harness-CI-CD/config
+                      cd config
                       pip install -r requirements.txt
                       python -c "from app import app; client = app.test_client(); r = client.get('/'); print(r.get_json()); r = client.get('/health'); print(r.get_json()); print('=== App Verified! ===')"
               - step:
@@ -70,8 +70,8 @@ pipeline:
                     tags:
                       - <+pipeline.sequenceId>
                       - latest
-                    dockerfile: Harness-CI-CD/config/Dockerfile
-                    context: Harness-CI-CD/config
+                    dockerfile: config/Dockerfile
+                    context: config
               - step:
                   type: Run
                   name: Verify Push
