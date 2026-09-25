@@ -75,7 +75,7 @@ pipeline:
                     shell: Sh
                     command: |-
                       echo "=== Step 2: Running Unit Tests ==="
-                      cd EHarness-CI-CD/config
+                      cd Harness-CI-CD/config
                       pip install -r requirements.txt
                       pytest test_app.py -v
                       echo "=== All 3 Tests Passed! ==="
