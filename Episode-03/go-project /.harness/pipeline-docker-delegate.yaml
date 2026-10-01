@@ -4,28 +4,35 @@ pipeline:
   projectIdentifier: Harness_CICD
   orgIdentifier: default
   tags: {}
+
   properties:
     ci:
       codebase:
         connectorRef: Gitnew
         build: <+input>
         sparseCheckout: []
+
   stages:
     - stage:
         name: build-go
         identifier: build_go
         description: Build, test, push Go app
         type: CI
+
         spec:
           cloneCodebase: true
+
           platform:
             os: Linux
             arch: Amd64
+
           runtime:
             type: Docker
             spec: {}
+
           execution:
             steps:
+
               - step:
                   type: Run
                   name: Run Tests
@@ -34,10 +41,23 @@ pipeline:
                     shell: Sh
                     image: golang:1.21-alpine
                     command: |-
+                      set -e
+
                       echo "=== Step 1: Running Go Tests ==="
-                      cd Episode-03/go-project/.harness
+
+                      cd Episode-03/go-project
+
+                      echo "Current directory:"
+                      pwd
+
+                      echo "Files:"
+                      ls -la
+
                       go test -v ./...
+
                       echo "=== All Tests Passed! ==="
+
+
               - step:
                   type: Run
                   name: Lint Check
@@ -47,9 +67,14 @@ pipeline:
                     image: golangci/golangci-lint:latest
                     command: |-
                       echo "=== Step 2: Running Lint Check ==="
-                      cd Episode-03/go-project/.harness
+
+                      cd Episode-03/go-project
+
                       golangci-lint run ./... || echo "Lint warnings found (non-blocking)"
+
                       echo "=== Lint Check Done! ==="
+
+
               - step:
                   type: Run
                   name: Code Coverage
@@ -58,13 +83,23 @@ pipeline:
                     shell: Sh
                     image: golang:1.21-alpine
                     command: |-
+                      set -e
+
                       echo "=== Step 3: Code Coverage ==="
-                      cd Episode-03/go-project/.harness
+
+                      cd Episode-03/go-project
+
                       go test -coverprofile=coverage.out ./...
+
                       go tool cover -func=coverage.out
+
                       COVERAGE=$(go tool cover -func=coverage.out | grep total | awk '{print $3}')
+
                       echo "Total Coverage: $COVERAGE"
+
                       echo "=== Coverage Done! ==="
+
+
               - step:
                   type: Run
                   name: Build App
@@ -73,11 +108,19 @@ pipeline:
                     shell: Sh
                     image: golang:1.21-alpine
                     command: |-
+                      set -e
+
                       echo "=== Step 4: Building Go App ==="
-                      cd Episode-03/go-project/.harness
+
+                      cd Episode-03/go-project
+
                       go build -o main .
+
                       ls -lh main
+
                       echo "=== Build Successful! ==="
+
+
               - step:
                   type: Run
                   name: Verify App
@@ -86,29 +129,57 @@ pipeline:
                     shell: Sh
                     image: golang:1.21-alpine
                     command: |-
+                      set -e
+
                       echo "=== Step 5: Verifying App ==="
-                      cd Episode-03/go-project/.harness
+
+                      cd Episode-03/go-project
+
                       go build -o main .
+
                       ./main &
-                      sleep 2
+
+                      APP_PID=$!
+
+                      echo "Application PID: $APP_PID"
+
+                      sleep 3
+
+                      echo "Checking root endpoint..."
+
                       wget -qO- http://localhost:8080/
+
                       echo ""
+
+                      echo "Checking health endpoint..."
+
                       wget -qO- http://localhost:8080/health
+
                       echo ""
+
                       echo "=== App Verified! ==="
-                      kill %1 2>/dev/null || true
+
+                      kill $APP_PID 2>/dev/null || true
+
+
               - step:
                   type: BuildAndPushDockerRegistry
                   name: Build and Push to Docker Hub
                   identifier: build_push_docker
                   spec:
                     connectorRef: dockerhub
+
                     repo: <+variable.docker_username>/go-harness-app
+
                     tags:
                       - <+pipeline.sequenceId>
                       - latest
+
                     dockerfile: Episode-03/go-project/Dockerfile
+
                     context: Episode-03/go-project
+
+
               - step:
                   type: Run
                   name: Verify Push
@@ -117,17 +188,37 @@ pipeline:
                     shell: Sh
                     image: alpine:latest
                     command: |-
+                      set -e
+
                       echo "=== Step 7: Verifying Image on Docker Hub ==="
+
                       apk add --no-cache curl > /dev/null 2>&1
-                      STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://hub.docker.com/v2/repositories/<+variable.docker_username>/go-harness-app/tags/<+pipeline.sequenceId>/)
+
+                      STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+                      https://hub.docker.com/v2/repositories/<+variable.docker_username>/go-harness-app/tags/<+pipeline.sequenceId>/)
+
+                      echo "Docker Hub returned status: $STATUS"
+
                       if [ "$STATUS" = "200" ]; then
+
                         echo "✅ Image tag <+pipeline.sequenceId> EXISTS on Docker Hub!"
+
                       else
+
                         echo "❌ Image NOT found (status: $STATUS)"
+
+                        exit 1
+
                       fi
+
                       echo ""
-                      echo "View: https://hub.docker.com/r/<+variable.docker_username>/go-harness-app"
+
+                      echo "View:"
+                      echo "https://hub.docker.com/r/<+variable.docker_username>/go-harness-app"
+
                       echo "=== Verification Done! ==="
+
+
               - step:
                   type: Run
                   name: Pipeline Complete
@@ -137,18 +228,26 @@ pipeline:
                     image: alpine:latest
                     command: |-
                       echo "========================================="
-                      echo "  PIPELINE COMPLETE!"
-                      echo ""
-                      echo "  Step 1: Tests passed ✅"
-                      echo "  Step 2: Lint check ✅"
-                      echo "  Step 3: Coverage report ✅"
-                      echo "  Step 4: Binary built ✅"
-                      echo "  Step 5: App verified ✅"
-                      echo "  Step 6: Docker image pushed ✅"
-                      echo "  Step 7: Push verified ✅"
-                      echo ""
-                      echo "  Image: <+variable.docker_username>/go-harness-app:<+pipeline.sequenceId>"
+                      echo "          PIPELINE COMPLETE!"
                       echo "========================================="
+                      echo ""
+                      echo "Step 1: Tests passed ✅"
+                      echo "Step 2: Lint check ✅"
+                      echo "Step 3: Coverage report ✅"
+                      echo "Step 4: Binary built ✅"
+                      echo "Step 5: App verified ✅"
+                      echo "Step 6: Docker image pushed ✅"
+                      echo "Step 7: Push verified ✅"
+                      echo ""
+                      echo "Image:"
+                      echo "<+variable.docker_username>/go-harness-app:<+pipeline.sequenceId>"
+                      echo ""
+                      echo "Latest:"
+                      echo "<+variable.docker_username>/go-harness-app:latest"
+                      echo ""
+                      echo "========================================="
+
+
               - step:
                   type: Run
                   name: Verify Success
@@ -158,12 +257,26 @@ pipeline:
                     image: alpine:latest
                     command: |-
                       echo "=== Step 9: Final Verification ==="
+
                       apk add --no-cache curl > /dev/null 2>&1
-                      echo "Image: <+variable.docker_username>/go-harness-app:<+pipeline.sequenceId>"
-                      echo "Image: <+variable.docker_username>/go-harness-app:latest"
+
                       echo ""
-                      echo "Docker Hub: https://hub.docker.com/r/<+variable.docker_username>/go-harness-app"
+                      echo "Image:"
+                      echo "<+variable.docker_username>/go-harness-app:<+pipeline.sequenceId>"
+
+                      echo ""
+                      echo "Latest Image:"
+                      echo "<+variable.docker_username>/go-harness-app:latest"
+
+                      echo ""
+                      echo "Docker Hub:"
+                      echo "https://hub.docker.com/r/<+variable.docker_username>/go-harness-app"
+
+                      echo ""
+
                       echo "=== All Good! ==="
+
+
               - step:
                   type: Run
                   name: Wait Before Cleanup
@@ -173,8 +286,12 @@ pipeline:
                     image: alpine:latest
                     command: |-
                       echo "=== Step 10: Waiting 1 minute before cleanup ==="
+
                       sleep 60
+
                       echo "=== Done waiting! ==="
+
+
               - step:
                   type: Run
                   name: Delete and Verify
@@ -183,21 +300,78 @@ pipeline:
                     shell: Sh
                     image: alpine:latest
                     command: |-
+                      set -e
+
                       echo "=== Step 11: Deleting Docker Hub Repository ==="
+
                       apk add --no-cache curl python3 > /dev/null 2>&1
-                      TOKEN=$(curl -s -H "Content-Type: application/json" -X POST -d '{"username":"<+variable.docker_username>","password":"<+secrets.getValue("docker-hub-password")>"}' https://hub.docker.com/v2/users/login/ | python3 -c "import sys,json; print(json.load(sys.stdin)['token'])")
-                      echo "Deleting repository: <+variable.docker_username>/go-harness-app"
-                      curl -s -X DELETE -H "Authorization: JWT $TOKEN" https://hub.docker.com/v2/repositories/<+variable.docker_username>/go-harness-app/
+
+                      echo "Logging into Docker Hub API..."
+
+                      RESPONSE=$(curl -s \
+                      -H "Content-Type: application/json" \
+                      -X POST \
+                      -d '{"username":"<+variable.docker_username>","password":"<+secrets.getValue("docker-hub-password")>"}' \
+                      https://hub.docker.com/v2/users/login/)
+
+                      echo "Getting Docker Hub token..."
+
+                      TOKEN=$(echo "$RESPONSE" | python3 -c "
+                      import sys,json
+
+                      data=json.load(sys.stdin)
+
+                      token=data.get('token') or data.get('access_token')
+
+                      if not token:
+                          print('Docker Hub login failed', file=sys.stderr)
+                          print(data, file=sys.stderr)
+                          sys.exit(1)
+
+                      print(token)
+                      ")
+
+                      echo "Docker Hub login successful"
+
                       echo ""
+
+                      echo "Deleting repository:"
+                      echo "<+variable.docker_username>/go-harness-app"
+
+                      DELETE_STATUS=$(curl -s \
+                      -o /dev/null \
+                      -w "%{http_code}" \
+                      -X DELETE \
+                      -H "Authorization: JWT $TOKEN" \
+                      https://hub.docker.com/v2/repositories/<+variable.docker_username>/go-harness-app/)
+
+                      echo "Delete request status: $DELETE_STATUS"
+
+                      echo ""
+
                       sleep 5
+
                       echo "=== Verifying Deletion ==="
-                      STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://hub.docker.com/v2/repositories/<+variable.docker_username>/go-harness-app/)
+
+                      STATUS=$(curl -s \
+                      -o /dev/null \
+                      -w "%{http_code}" \
+                      https://hub.docker.com/v2/repositories/<+variable.docker_username>/go-harness-app/)
+
+                      echo "Verification status: $STATUS"
+
                       if [ "$STATUS" = "404" ]; then
+
                         echo "✅ Repository DELETED successfully!"
+
                       else
+
                         echo "⚠️ Repository may still exist (status: $STATUS)"
+
                       fi
+
                       echo ""
+
                       echo "========================================="
-                      echo "  ALL DONE! Repository cleaned up."
+                      echo "ALL DONE! Repository cleaned up."
                       echo "========================================="
