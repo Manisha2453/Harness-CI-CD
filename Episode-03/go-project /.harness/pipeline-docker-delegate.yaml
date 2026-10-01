@@ -35,7 +35,7 @@ pipeline:
                     image: golang:1.21-alpine
                     command: |-
                       echo "=== Step 1: Running Go Tests ==="
-                      cd Episode-03/go-project
+                      cd Episode-03/go-project/.harness
                       go test -v ./...
                       echo "=== All Tests Passed! ==="
               - step:
@@ -47,7 +47,7 @@ pipeline:
                     image: golangci/golangci-lint:latest
                     command: |-
                       echo "=== Step 2: Running Lint Check ==="
-                      cd Episode-03/go-project
+                      cd Episode-03/go-project/.harness
                       golangci-lint run ./... || echo "Lint warnings found (non-blocking)"
                       echo "=== Lint Check Done! ==="
               - step:
@@ -59,7 +59,7 @@ pipeline:
                     image: golang:1.21-alpine
                     command: |-
                       echo "=== Step 3: Code Coverage ==="
-                      cd Episode-03/go-project
+                      cd Episode-03/go-project/.harness
                       go test -coverprofile=coverage.out ./...
                       go tool cover -func=coverage.out
                       COVERAGE=$(go tool cover -func=coverage.out | grep total | awk '{print $3}')
@@ -74,7 +74,7 @@ pipeline:
                     image: golang:1.21-alpine
                     command: |-
                       echo "=== Step 4: Building Go App ==="
-                      cd Episode-03/go-project
+                      cd Episode-03/go-project/.harness
                       go build -o main .
                       ls -lh main
                       echo "=== Build Successful! ==="
@@ -87,7 +87,7 @@ pipeline:
                     image: golang:1.21-alpine
                     command: |-
                       echo "=== Step 5: Verifying App ==="
-                      cd Episode-03/go-project
+                      cd Episode-03/go-project/.harness
                       go build -o main .
                       ./main &
                       sleep 2
